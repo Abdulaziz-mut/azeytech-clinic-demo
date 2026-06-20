@@ -1,0 +1,143 @@
+<div id="wrap">
+  <style>
+    #wrap{display:flex;justify-content:center;padding:18px 8px;font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;}
+    #phone{width:380px;max-width:100%;height:680px;background:#e5ddd5;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.25);border:9px solid #111;position:relative;}
+    #hdr{background:#075e54;color:#fff;display:flex;align-items:center;gap:10px;padding:12px 14px;direction:rtl;flex:0 0 auto;}
+    #hdr .av{width:40px;height:40px;border-radius:50%;background:#cfe9e3;color:#075e54;display:flex;align-items:center;justify-content:center;font-size:20px;flex:0 0 auto;}
+    #hdr .nm{font-size:15px;font-weight:600;line-height:1.2;}
+    #hdr .st{font-size:11.5px;color:#cfe9e3;}
+    #chat{flex:1 1 auto;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:8px;background:#e5ddd5;}
+    .row{display:flex;width:100%;}
+    .row.bot{justify-content:flex-start;}
+    .row.me{justify-content:flex-end;}
+    .bub{max-width:80%;padding:7px 10px 6px;border-radius:9px;font-size:14.5px;line-height:1.55;direction:rtl;text-align:right;white-space:pre-wrap;word-wrap:break-word;box-shadow:0 1px .5px rgba(0,0,0,.13);}
+    .bot .bub{background:#fff;color:#111;border-top-right-radius:2px;}
+    .me .bub{background:#dcf8c6;color:#111;border-top-left-radius:2px;}
+    .tm{font-size:10px;color:#667;margin-top:2px;text-align:left;}
+    #chips{display:flex;gap:7px;overflow-x:auto;padding:8px 10px;direction:rtl;background:#ece5dd;flex:0 0 auto;}
+    #chips button{flex:0 0 auto;background:#fff;border:1px solid #c9c2ba;color:#075e54;border-radius:16px;padding:6px 12px;font-size:12.5px;cursor:pointer;font-family:inherit;}
+    #chips button:active{transform:scale(.97);}
+    #bar{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#f0f0f0;direction:rtl;flex:0 0 auto;}
+    #bar input{flex:1;border:none;border-radius:22px;padding:11px 14px;font-size:14.5px;outline:none;direction:rtl;text-align:right;font-family:inherit;background:#fff;}
+    #send{width:44px;height:44px;border-radius:50%;background:#075e54;color:#fff;border:none;cursor:pointer;font-size:19px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+    #send:disabled{opacity:.5;}
+    .dots span{display:inline-block;width:6px;height:6px;margin:0 1px;background:#999;border-radius:50%;animation:bl 1s infinite;}
+    .dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+    @keyframes bl{0%,60%,100%{opacity:.3}30%{opacity:1}}
+    #reset{position:absolute;top:14px;left:14px;background:rgba(255,255,255,.2);border:none;color:#fff;font-size:12px;padding:4px 9px;border-radius:12px;cursor:pointer;font-family:inherit;}
+  </style>
+
+  <div id="phone">
+    <div id="hdr">
+      <div class="av">🦷</div>
+      <div>
+        <div class="nm">عيادة ابتسامة لطب الأسنان</div>
+        <div class="st" id="stat">متصل الآن</div>
+      </div>
+      <button id="reset" onclick="resetChat()">جديد</button>
+    </div>
+    <div id="chat"></div>
+    <div id="chips">
+      <button onclick="quick('كم سعر تنظيف الأسنان؟')">سعر التنظيف؟</button>
+      <button onclick="quick('متى أوقات الدوام؟')">أوقات الدوام؟</button>
+      <button onclick="quick('وين موقعكم؟')">الموقع؟</button>
+      <button onclick="quick('أبي أحجز موعد')">حجز موعد</button>
+      <button onclick="quick('كم سعر التقويم؟')">سعر التقويم؟</button>
+    </div>
+    <div id="bar">
+      <input id="msg" placeholder="اكتب رسالة" autocomplete="off" />
+      <button id="send" onclick="send()" aria-label="إرسال">➤</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const chat=document.getElementById('msg');
+let booking=0, bookName='', lastOffer='';
+
+function now(){const d=new Date();let h=d.getHours(),m=d.getMinutes();const ap=h<12?'ص':'م';h=h%12||12;return h+':'+(m<10?'0'+m:m)+' '+ap;}
+function norm(s){return s.replace(/[\u064B-\u065F\u0670]/g,'').replace(/[إأآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/ؤ/g,'و').replace(/ئ/g,'ي').replace(/\s+/g,' ').trim();}
+function has(t,arr){return arr.some(k=>t.includes(k));}
+
+function addBubble(text,who){
+  const row=document.createElement('div');row.className='row '+who;
+  const b=document.createElement('div');b.className='bub';b.textContent=text;
+  const t=document.createElement('div');t.className='tm';t.textContent=now();b.appendChild(t);
+  row.appendChild(b);document.getElementById('chat').appendChild(row);
+  document.getElementById('chat').scrollTop=1e9;
+}
+function typing(on){
+  let r=document.getElementById('typing');
+  if(on){if(r)return;r=document.createElement('div');r.id='typing';r.className='row bot';
+    r.innerHTML='<div class="bub"><span class="dots"><span></span><span></span><span></span></span></div>';
+    document.getElementById('chat').appendChild(r);document.getElementById('chat').scrollTop=1e9;
+    document.getElementById('stat').textContent='يكتب…';}
+  else{if(r)r.remove();document.getElementById('stat').textContent='متصل الآن';}
+}
+
+const YES=['اي','ايه','ايوه','ايو','نعم','تمام','زين','اوكي','اوك','اكيد','طيب','يب','يبه','اها','تم','ماشي','اوكيه'];
+function isYes(t){return YES.includes(t)||(t.length<=7&&has(t,YES));}
+
+function reply(raw){
+  const t=norm(raw);
+  const isQuestion=has(t,['سعر','كم','وين','فين','متى','موقع','دوام','عرض','خصم']);
+
+  if(booking===1){
+    if(isQuestion){return answer(t)+'\n\nوش الاسم الكريم عشان أكمل الحجز؟';}
+    bookName=raw.trim();booking=2;
+    return 'تشرفنا '+bookName+' 🌹 أي يوم ووقت يناسبك للموعد؟';
+  }
+  if(booking===2){
+    if(isQuestion){return answer(t)+'\n\nوأي وقت يناسبك للموعد؟';}
+    booking=0;
+    return 'تم يا '+bookName+'! ✅ سجّلت لك الموعد ('+raw.trim()+') مبدئياً، وأحد موظفينا بيتواصل معك خلال وقت قصير للتأكيد النهائي 🦷✨';
+  }
+  if(has(t,['حولني','كلموني','اكلم','موظف','تواصل','اتصال','رقمكم','رقمك'])){
+    return 'أكيد 🌹 بحوّلك لأحد موظفي العيادة وبيتواصل معك خلال دقائق. وإذا تحب تختصر الوقت، اعطني اسمك ووقت يناسبك وأنا أجهّز لك الموعد.';
+  }
+  if(has(t,['حجز','احجز','موعد','ابي اروح','ابغى موعد'])){
+    booking=1;return 'يا هلا فيك 🦷 أبشر، بنحجز لك. ممكن أعرف اسمك الكريم؟';
+  }
+  if(isYes(t)){
+    if(lastOffer==='book'){booking=1;return 'يا هلا 🦷 أبشر، ممكن أعرف اسمك الكريم؟';}
+    if(lastOffer==='map'){return 'تم 📍 هذا موقعنا: حي الياسمين، طريق الأمير محمد بن سعد، الرياض. تقدر تفتح الخريطة من هنا 👇\nhttps://maps.app.goo.gl/smile-clinic\nنشوفك قريب! 🌹';}
+    return 'تمام 🌹 تحب أحجز لك موعد، ولا عندك سؤال ثاني عن الأسعار أو المواعيد؟';
+  }
+  return answer(t);
+}
+
+function answer(t){
+  if(has(t,['تنظيف','تنضيف','جير','تلميع'])) return 'تنظيف وتلميع الأسنان بـ 250 ريال 🦷✨ وعندنا خصم 20% للمرضى الجدد — يعني 200 ريال بس! تحب أحجز لك؟';
+  if(has(t,['تبييض','تبيض','تبضيض'])) return 'تبييض الأسنان بالليزر بـ 800 ريال، والنتيجة تبان من أول جلسة ✨ تبي موعد؟';
+  if(has(t,['تقويم','تقويمات'])) return 'التقويم يبدأ من 4500 ريال، ويعتمد على نوعه وحالة الأسنان. أنصحك بكشف أول عشان الطبيب يحدد الأنسب لك 😊 تبي أحجز؟';
+  if(has(t,['زراعه','زرع','زراعت'])) return 'زراعة السن تبدأ من 2500 ريال، والسعر النهائي يحدده الطبيب بعد الكشف 🦷 تحب أحجز لك كشف؟';
+  if(has(t,['حشو','حشوه','حشوات'])) return 'الحشوة التجميلية بـ 300 ريال 🦷 تحب نحجز لك كشف نشوف حالتك؟';
+  if(has(t,['كشف','معاينه','فحص'])) return 'الكشف والتشخيص بـ 100 ريال، ويُخصم من قيمة العلاج لو قررت تكمل معنا 👍 تحب موعد؟';
+  if(has(t,['دوام','اوقات','تفتحون','تسكرون','تفتح','ساعات','مفتوح'])) return 'دوامنا يومياً من 9 الصباح إلى 12 منتصف الليل، ما عدا الجمعة (مغلق) 🕐 تبي تحجز في وقت معين؟';
+  if(has(t,['موقع','وين','فين','عنوان','خريطه','وينكم','مكان'])) return 'موقعنا في حي الياسمين بالرياض، على طريق الأمير محمد بن سعد 📍 تحب أرسل لك الموقع على الخريطة وقت الحجز؟';
+  if(has(t,['عرض','عروض','خصم','تخفيض'])) return 'عرضنا الحالي: خصم 20% على تنظيف الأسنان للمرضى الجدد 🎉 تحب تستفيد منه وأحجز لك؟';
+  if(has(t,['سعر','اسعار','كم','بكم','تكلفه','كلفه'])) return 'أسعارنا 🦷:\n• كشف وتشخيص: 100 ريال (يُخصم من العلاج)\n• تنظيف وتلميع: 250 ريال\n• حشوة تجميلية: 300 ريال\n• تبييض بالليزر: 800 ريال\n• زراعة سن: من 2500 ريال\n• تقويم: من 4500 ريال\nتبي تحجز موعد؟';
+  if(has(t,['سلام','هلا','مرحبا','هاي','هلو','اهلا'])) return 'هلا والله 🌹 كيف أقدر أخدمك؟ أسعار، مواعيد، ولا حجز موعد؟';
+  if(has(t,['شكرا','مشكور','يعطيك','تسلم','ماقصرت','ما قصرت'])) return 'العفو، هذا واجبنا 🌹 تأمر على أي شي ثاني؟';
+  return 'حياك الله 🌹 أقدر أساعدك بـ: الأسعار، أوقات الدوام، الموقع، أو حجز موعد. وإذا تبي تفصيل أكثر أحوّلك لأحد موظفينا — وش تحب؟';
+}
+
+function quick(x){chat.value=x;send();}
+function send(){
+  const text=chat.value.trim();if(!text)return;
+  chat.value='';document.getElementById('send').disabled=true;
+  addBubble(text,'me');typing(true);
+  const r=reply(text);
+  if(r.includes('أحجز لك')||r.includes('تبي تحجز')||r.includes('تبي موعد')||r.includes('تبي أحجز')) lastOffer='book';
+  else if(r.includes('الموقع على الخريطة')) lastOffer='map';
+  else lastOffer='';
+  setTimeout(()=>{typing(false);addBubble(r,'bot');document.getElementById('send').disabled=false;chat.focus();},700);
+}
+function resetChat(){
+  booking=0;bookName='';lastOffer='';document.getElementById('chat').innerHTML='';
+  addBubble('هلا وغلا في عيادة ابتسامة لطب الأسنان 🦷\nكيف أقدر أساعدك اليوم؟ تقدر تسألني عن الأسعار، المواعيد، أو تحجز موعد.','bot');
+}
+chat.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();send();}});
+resetChat();
+</script>
+</div>
